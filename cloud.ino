@@ -6,12 +6,16 @@
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
 #include <SoftwareSerial.h>
+#include <TroykaMQ.h>
 
 #define DHTPIN 2
 #define BATTERYPIN 14
 #define DHTTYPE DHT11
 #define SCREEN_WIDTH 128  
 #define SCREEN_HEIGHT 32 
+
+#define PIN_MQ9  A0
+#define PIN_MQ9_HEATER  8
 
 DHT dht(DHTPIN, DHTTYPE);
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -33,6 +37,10 @@ unsigned long timerDelay = 360000;
 SoftwareSerial _serial(D5, D6);
 int _pm1, _pm25, _pm10;
 
+float mq9lpg, mq9methane, mq9co;
+
+MQ9 mq9(PIN_MQ9, PIN_MQ9_HEATER);
+
 void setup(){
   dht.begin();
 
@@ -48,6 +56,8 @@ void setup(){
   delay(1000);
   Serial.begin(115200);
   _serial.begin(9600);
+  
+  mq9.cycleHeat();
 
 //  WiFi.begin(ssid, password);
 //  while(WiFi.status() != WL_CONNECTED) {
@@ -83,7 +93,8 @@ void loop() {
   }
   
   if ((millis() - lastTime) > timerDelay) {
-    readSensor();
+    readPm25();
+    readMq9();
     
 //    if(WiFi.status()== WL_CONNECTED){
 //      WiFiClient client;
@@ -107,7 +118,7 @@ void loop() {
 }
 
 
-void readSensor() {
+void readPm25() {
   int checksum = 0;
   unsigned char pms[32] = {0,};
 
@@ -139,3 +150,41 @@ void readSensor() {
     _pm10 = makeWord(pms[14],pms[15]);
   }   
 } 
+
+void readMq9() {
+  // если прошёл интервал нагрева датчика
+  // и калибровка не была совершена
+  if (!mq9.isCalibrated() && mq9.atHeatCycleEnd()) {
+    // выполняем калибровку датчика на чистом воздухе
+    mq9.calibrate();
+    // выводим сопротивление датчика в чистом воздухе (Ro) в serial-порт
+    Serial.print("Ro = ");
+    Serial.println(mq9.getRo());
+    // запускаем термоцикл
+    mq9.cycleHeat();
+  }
+  // если прошёл интевал нагрева датчика
+  // и калибровка была совершена
+  if (mq9.isCalibrated() && mq9.atHeatCycleEnd()) {
+    // выводим отношения текущего сопротивление датчика
+    // к сопротивлению датчика в чистом воздухе (Rs/Ro)
+    Serial.print("Ratio: ");
+    Serial.print(mq9.readRatio());
+    // выводим значения газов в ppm
+    Serial.print(" LPG: ");
+    mq9lpg = mq9.readLPG();
+    Serial.print(mq9lpg);
+    Serial.print(" ppm ");
+    Serial.print(" Methane: ");
+    mq9methane = mq9.readMethane();
+    Serial.print(mq9methane);
+    Serial.print(" ppm ");
+    Serial.print(" CarbonMonoxide: ");
+    mq9co = mq9.readCarbonMonoxide();
+    Serial.print(mq9co);
+    Serial.println(" ppm ");
+    // запускаем термоцикл
+    mq9.cycleHeat();
+  }
+
+}
