@@ -1,4 +1,4 @@
-#include <DHT.h>
+
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -6,28 +6,35 @@
 //#include <ESP8266HTTPClient.h>
 //#include <WiFiClient.h>
 #include <SoftwareSerial.h>
-#include <TroykaMQ.h>
-#include <MHZ19.h>
-
+#include <MHZ19.h>                                                                    
+#include <Adafruit_BME280.h>                            
+#include <Adafruit_Sensor.h>                            
+ 
+#define SEALEVELPRESSURE_HPA (1013.25) 
 #define DHTPIN 2
 #define BATTERYPIN 14
 #define DHTTYPE DHT11
 #define SCREEN_WIDTH 128  
 #define SCREEN_HEIGHT 32 
+#define BuzzerPin D8 
+#define GasSensorPin A0
 
 #define PIN_MQ9  A0
 #define PIN_MQ9_HEATER  8
 
-DHT dht(DHTPIN, DHTTYPE);
+Adafruit_BME280 bme;
+
 //MQ9 mq9(A0, PIN_MQ9_HEATER);
 MHZ19 myMHZ19;
-SoftwareSerial co2_serial(D3, D4);
+SoftwareSerial co2_serial(, D4);
 
 //Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 float hum;
 float temp;
 float voltage;
+float pres;
+
 
 unsigned long timer;
 
@@ -43,10 +50,13 @@ SoftwareSerial _serial(D5, D6);
 int _pm1, _pm25, _pm10;
 float mq9lpg, mq9methane, mq9co;
 int ppm_co2;
+int gasValue = analogRead(GasSensorPin);
 
 
 void setup(){
-  dht.begin();
+  bme.begin();
+  if (!bme.begin(0x76)) {                               // Проверка инициализации датчика
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
 
 //  oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);                                                                                                                                              
 //  oled.clearDisplay(); 
@@ -80,12 +90,17 @@ void loop() {
 
 //    oled.clearDisplay();
 //    oled.setCursor(0, 10);   
-    hum = dht.readHumidity();
-    temp = dht.readTemperature();
+    hum = bme.readHumidity();
+    temp = bme.readTemperature();
+    pres = bme.readPressure();
     Serial.print("Temperature = ");
     Serial.println(temp);
     Serial.print("Humidity = ");
     Serial.println(hum);
+    Serial.print("Pressure = ");
+    Serial.println(pres);
+    Serial.print("CO2 = ")
+    Serial.println(gasValue);    
     
 //    oled.setCursor(95,7);
 //    oled.print("H: ");
