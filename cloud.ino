@@ -1,42 +1,39 @@
 
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-//#include <ESP8266WiFi.h>
-//#include <ESP8266HTTPClient.h>
-//#include <WiFiClient.h>
+//#include <Wire.h>
+//#include <Adafruit_GFX.h>
+//#include <Adafruit_SSD1306.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
 #include <SoftwareSerial.h>
-#include <MHZ19.h>                                                                    
-#include <Adafruit_BME280.h>                            
-#include <Adafruit_Sensor.h>                            
+//#include <MHZ19.h>                                                                    
+//#include <Adafruit_BME280.h>                            
+//#include <Adafruit_Sensor.h>                            
  
-#define SEALEVELPRESSURE_HPA (1013.25) 
-#define DHTPIN 2
-#define BATTERYPIN 14
-#define DHTTYPE DHT11
-#define SCREEN_WIDTH 128  
-#define SCREEN_HEIGHT 32 
-#define BuzzerPin D8 
-#define GasSensorPin A0
+//#define SEALEVELPRESSURE_HPA (1013.25) 
+//#define DHTPIN 2
+//#define BATTERYPIN 14
+//#define DHTTYPE DHT11
+//#define SCREEN_WIDTH 128  
+//#define SCREEN_HEIGHT 32 
+//#define BuzzerPin D8 
+//#define GasSensorPin A0
 
-#define PIN_MQ9  A0
-#define PIN_MQ9_HEATER  8
+//#define PIN_MQ9  A0
+//#define PIN_MQ9_HEATER  8
 
-Adafruit_BME280 bme;
+//Adafruit_BME280 bme;
 
 //MQ9 mq9(A0, PIN_MQ9_HEATER);
-MHZ19 myMHZ19;
-SoftwareSerial co2_serial(, D4);
+//MHZ19 myMHZ19;
+//SoftwareSerial co2_serial(, D4);
 
 //Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-float hum;
-float temp;
-float voltage;
-float pres;
-
-
-unsigned long timer;
+//float hum;
+//float temp;
+//float voltage;
+//float pres;
 
 const char* ssid = "cyberpunk";
 const char* password = "10011001";
@@ -48,15 +45,17 @@ unsigned long timerDelay = 5000;
 
 SoftwareSerial _serial(D5, D6);
 int _pm1, _pm25, _pm10;
-float mq9lpg, mq9methane, mq9co;
-int ppm_co2;
-int gasValue = analogRead(GasSensorPin);
+//int ppm_co2;
+int gasValue;
 
 
 void setup(){
-  bme.begin();
-  if (!bme.begin(0x76)) {                               // Проверка инициализации датчика
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+  Serial.begin(115200);
+  
+//  bme.begin();
+//  if (!bme.begin(0x76)) {                               // Проверка инициализации датчика
+//    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+//  }
 
 //  oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);                                                                                                                                              
 //  oled.clearDisplay(); 
@@ -68,14 +67,11 @@ void setup(){
 //  oled.println("loading..."); 
 //  oled.display(); 
 //  delay(1000);
-  Serial.begin(115200);
   _serial.begin(9600);
-  
-//  mq9.cycleHeat();
 
-  co2_serial.begin(9600);
-  myMHZ19.begin(co2_serial);
-  myMHZ19.autoCalibration();
+//  co2_serial.begin(9600);
+//  myMHZ19.begin(co2_serial);
+//  myMHZ19.autoCalibration();
 
 //  WiFi.begin(ssid, password);
 //  while(WiFi.status() != WL_CONNECTED) {
@@ -84,48 +80,24 @@ void setup(){
 }
 
 void loop() {
-  if (millis() - timer > 1000) {
-    timer = millis();
-    voltage = (5.0 * analogRead(BATTERYPIN)) / 1023.0;
-
-//    oled.clearDisplay();
-//    oled.setCursor(0, 10);   
-    hum = bme.readHumidity();
-    temp = bme.readTemperature();
-    pres = bme.readPressure();
-    Serial.print("Temperature = ");
-    Serial.println(temp);
-    Serial.print("Humidity = ");
-    Serial.println(hum);
-    Serial.print("Pressure = ");
-    Serial.println(pres);
-    Serial.print("CO2 = ")
-    Serial.println(gasValue);    
-    
-//    oled.setCursor(95,7);
-//    oled.print("H: ");
-//    oled.print(hum);
-//    oled.println(" %");
-//
-//    oled.setCursor(95,16);
-//    oled.print("T: ");
-//    oled.print(temp);
-//    oled.println(" C");
-//
-//    oled.drawRect(5, 0, 15, 5, WHITE);
-//    oled.fillRect(100, 0, round((voltage * 15.0) / 5.0), 5, WHITE);
-//    oled.setCursor(10, 23);
-//    oled.print("v0.1");
-//    oled.display(); 
-  }
-  
   if ((millis() - lastTime) > timerDelay) {
-//    readPm25();
-//    delay(1000);
-//    readMq9();
-    ppm_co2 = myMHZ19.getCO2();
-    Serial.print("CO2 = ");
-    Serial.println(ppm_co2);
+    readPm25();
+    Serial.printf("PM1.0:%d PM2.5:%d PM10.0:%d\n", _pm1, _pm25, _pm10);
+//    ppm_co2 = myMHZ19.getCO2();
+//    Serial.print("CO2 = ");
+//    Serial.println(ppm_co2);
+//    Serial.print("CO = ");
+//    Serial.println(analogRead(A0));
+//
+//    hum = bme.readHumidity();
+//    temp = bme.readTemperature();
+//    pres = bme.readPressure();
+//    Serial.print("Temperature = ");
+//    Serial.println(temp);
+//    Serial.print("Humidity = ");
+//    Serial.println(hum);
+//    Serial.print("Pressure = ");
+//    Serial.println(pres);  
    
 //    if(WiFi.status()== WL_CONNECTED){
 //      WiFiClient client;
@@ -178,48 +150,5 @@ void readPm25() {
     _pm1  = makeWord(pms[10],pms[11]);
     _pm25 = makeWord(pms[12],pms[13]);
     _pm10 = makeWord(pms[14],pms[15]);
-    Serial.print("PM_1 = ");
-    Serial.println(_pm1);
-    Serial.print("PM_25 = ");
-    Serial.println(_pm25);
-    Serial.print("PM_10 = ");
-    Serial.println(_pm10);
   }   
 } 
-//
-//void readMq9() {
-//  // если прошёл интервал нагрева датчика
-//  // и калибровка не была совершена
-//  if (!mq9.isCalibrated() && mq9.atHeatCycleEnd()) {
-//    // выполняем калибровку датчика на чистом воздухе
-//    mq9.calibrate();
-//    // выводим сопротивление датчика в чистом воздухе (Ro) в serial-порт
-//    Serial.print("Ro = ");
-//    Serial.println(mq9.getRo());
-//    // запускаем термоцикл
-//    mq9.cycleHeat();
-//  }
-//  // если прошёл интевал нагрева датчика
-//  // и калибровка была совершена
-//  if (mq9.isCalibrated() && mq9.atHeatCycleEnd()) {
-//    // выводим отношения текущего сопротивление датчика
-//    // к сопротивлению датчика в чистом воздухе (Rs/Ro)
-//    Serial.print("Ratio: ");
-//    Serial.print(mq9.readRatio());
-//    // выводим значения газов в ppm
-//    Serial.print(" LPG: ");
-//    mq9lpg = mq9.readLPG();
-//    Serial.print(mq9lpg);
-//    Serial.print(" ppm ");
-//    Serial.print(" Methane: ");
-//    mq9methane = mq9.readMethane();
-//    Serial.print(mq9methane);
-//    Serial.print(" ppm ");
-//    Serial.print(" CarbonMonoxide: ");
-//    mq9co = mq9.readCarbonMonoxide();
-//    Serial.print(mq9co);
-//    Serial.println(" ppm ");
-//    // запускаем термоцикл
-//    mq9.cycleHeat();
-//  }
-//}

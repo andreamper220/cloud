@@ -1,10 +1,10 @@
 
 #include <ESP8266WiFi.h>
+#include <Wire.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
 #include <SoftwareSerial.h>
-#include <Adafruit_BME280.h>                            
-#include <Adafruit_Sensor.h>  
+#include <Adafruit_BMP280.h>
 
 const char* ssid = "cyberpunk";
 const char* password = "10011001";
@@ -14,7 +14,7 @@ const char* serverName = "http://narodmon.ru/json";
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
 
-Adafruit_BME280 bme;
+Adafruit_BMP280 bmp;
 float hum, temp, pres;
 
 SoftwareSerial _serial(D5, D6);
@@ -22,21 +22,27 @@ int _pm1, _pm25, _pm10;
 
 void setup() {
   Serial.begin(115200);
-  bme.begin();
-  if (!bme.begin(0x76)) {                               
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-  }
+  Wire.begin();
   _serial.begin(9600);
 
-  WiFi.begin(ssid, password);
-  Serial.println("Connecting");
-  while(WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+//  WiFi.begin(ssid, password);
+//  Serial.println("Connecting");
+//  while(WiFi.status() != WL_CONNECTED) {
+//    delay(500);
+//    Serial.print(".");
+//  }
+//  Serial.println("");
+//  Serial.print("Connected to WiFi network with IP Address: ");
+//  Serial.println(WiFi.localIP());
+  if (!bmp.begin(0x76)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
   }
-  Serial.println("");
-  Serial.print("Connected to WiFi network with IP Address: ");
-  Serial.println(WiFi.localIP());
+  /* Default settings from datasheet. */
+  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
+                  Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                  Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+                  Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+                  Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
 }
 
 void loop() {
@@ -45,11 +51,11 @@ void loop() {
     Serial.printf("PM1.0 = %d\n PM2.5 = %d\n PM10.0 = %d\n", _pm1, _pm25, _pm10);
 
     Serial.print("Temperature = ");
-    Serial.println(bme.readTemperature());
-    Serial.print("Humidity = ");
-    Serial.println(bme.readHumidity());
+    Serial.println(bmp.readTemperature());
+//    Serial.print("Humidity = ");
+//    Serial.println(bmp.readHumidity());
     Serial.print("Pressure = ");
-    Serial.println(bme.readPressure());  
+    Serial.println(bmp.readPressure());  
 
     Serial.print("CO = ");
     Serial.println(analogRead(A0));
@@ -63,7 +69,7 @@ void loop() {
 //      http.addHeader("Content-Type", "application/json");
 //
 //      String json = 
-//        String("{\"devices\":[{\"mac\":\"E8DB84ED8FCF\",\"name\":\"mich1\",\"owner\":\"blini000\",\"lat\":52.888295,\"lon\":40.516813,\"alt\":152,\"sensors\":[{\"id\":\"PM1\",\"name\":\"PM2.5_1\",\"value\":") 
+//        String("") 
 //        + _pm25 
 //        + String(".00,\"unit\":\"\u00B5g\/m3\"}]}]}");
 //      
