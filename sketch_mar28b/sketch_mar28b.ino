@@ -13,7 +13,7 @@ const char* password = "10011001";
 const char* serverName = "http://narodmon.ru/json";
 
 unsigned long lastTime = 0;
-unsigned long timerDelay = 5000;
+unsigned long timerDelay = 300000;
 
 Adafruit_BMP280 bmp;
 float hum, temp, pres;
@@ -27,17 +27,9 @@ void setup() {
   Wire.begin();
   _serial.begin(9600);
 
-//  WiFi.begin(ssid, password);
-//  Serial.println("Connecting");
-//  while(WiFi.status() != WL_CONNECTED) {
-//    delay(500);
-//    Serial.print(".");
-//  }
-//  Serial.println("");
-//  Serial.print("Connected to WiFi network with IP Address: ");
-//  Serial.println(WiFi.localIP());
-  if (!bmp.begin(0x76)) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+  WiFi.begin(ssid, password);
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
   }
   /* Default settings from datasheet. */
   bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
@@ -48,6 +40,7 @@ void setup() {
 
   pinMode(2, INPUT);
   dht.begin();
+  bmp.begin(0x76);
 }
 
 void loop() {
@@ -63,17 +56,22 @@ void loop() {
       http.addHeader("Content-Type", "application/json");
 
       String json = 
-        String("{\"devices\":[{\"mac\":\"E8DB84ED8FCF\",\"name\":\"mich_1\",\"owner\":\"blini000\",\"lat\":52.888295,\"lon\":40.516813,\"alt\":291,\"sensors\":[{\"id\":\"PM1\",\"name\":\"PM2.5_1\",\"value\":"
-          + _pm25 
-          + ",{\"unit\":\"u00B5g\/m3\"},{\"id\":\"CO1\",\"name\":\"CO_1\",\"value\":"
-          + analogRead(A0)
-          + ",\"unit\":\"ppm\"},{\"id\":\"TEMP\",\"name\":\"TEMP_1\",\"value\":"
-          + dht.readTemperature()
-          + ",\"unit\":\"C\"},{\"id\":\"HUM1\",\"name\":\"HUM_1\",\"value\":"
-          + dht.readHumidity()
-          + ",\"unit\":\"%\"},{\"id\":\"PRES1\",\"name\":\"PRES_1\",\"value\":"
-          + bmp.readPressure()
-          + ",\"unit\":\"mmHg\"}]}]}");      
+        String("{\"devices\":[{\"mac\":\"E8DB84ED8FCF\",\"name\":\"mich_1\",\"owner\":\"blini000\",\"lat\":52.888295,\"lon\":40.516813,\"alt\":291,\"sensors\":[{\"id\":\"PM1\",\"name\":\"PM1_1\",\"value\":")
+        + _pm1
+        + String(".00,\"unit\":\"u00B5g\/m3\"},{\"id\":\"PM2_5\",\"name\":\"PM25_1\",\"value\":")
+        + _pm25
+        + String(".00,\"unit\":\"u00B5g\/m3\"},{\"id\":\"PM10\",\"name\":\"PM10_1\",\"value\":")
+        + _pm10 
+        + String(".00,\"unit\":\"u00B5g\/m3\"},{\"id\":\"CO1\",\"name\":\"CO_1\",\"value\":")
+        + analogRead(A0)
+        + String(".00,\"unit\":\"ppm\"},{\"id\":\"TEMP1\",\"name\":\"TEMP_1\",\"value\":")
+        + String(bmp.readTemperature())
+        + String(",\"unit\":\"C\"},{\"id\":\"HUM1\",\"name\":\"HUM_1\",\"value\":")
+        + String(dht.readHumidity())
+        + String(",\"unit\":\"%\"},{\"id\":\"PRES1\",\"name\":\"PRES_1\",\"value\":")
+        + String(bmp.readPressure() * 0.0075)
+        + String(",\"unit\":\"mmHg\"}]}]}");
+      Serial.println(json);
       int httpResponseCode = http.POST(json);
       if (httpResponseCode > 0) {
         Serial.print("HTTP Response code: ");
