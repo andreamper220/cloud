@@ -1,10 +1,19 @@
-#include <Adafruit_BMP280.h>
+#include <Adafruit_BME280.h>
 #include <DHT.h>
 #include <ESP8266WiFi.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <ESP8266HTTPClient.h>
 #include <SoftwareSerial.h>
 #include <WiFiClient.h>
 #include <Wire.h>
+
+/**
+ * OLED Settings
+ */
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+Adafruit_SSD1306 display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire);
 
 /**
  * Wi-Fi Settings
@@ -16,46 +25,48 @@ const char* serverName = "http://narodmon.ru/json";
 /**
  * Common settings
  */
-const String mac = "E8DB84ED8FCF";
+const String mac = "E8DB84ED8FCA";
 const float latitude = 52.888295;
 const float longitude = 40.516813;
 const int altitude = 291;
-const String placeName = "mich_1";
-const String placeOwner = "blini000";
+const String placeName = "center";
+const String placeOwner = "junicode";
 
 /**
  * Timers
  */
 unsigned long sendDataMillis = 0;
 unsigned long sendDataInterval = 300000;
+unsigned long showDataMillis = 0;
+unsigned long showDataInterval = 5000;
 
 /**
  * Sensors
  */
-// BMP280
-Adafruit_BMP280 bmp;
-float temperature, pressure;
+// BME280
+Adafruit_BME280 bme;
+float temperature, humidity, pressure;
 // PMS7003
 SoftwareSerial serialPms7003(D5, D6);
 int pm1, pm25, pm10;
-// DHT11
-DHT dht(2, DHT11);
-float humidity;
+// MQ-9
+int co;
 
 void setup() {
-  // BMP280
-  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
-                  Adafruit_BMP280::SAMPLING_X2,
-                  Adafruit_BMP280::SAMPLING_X16,
-                  Adafruit_BMP280::FILTER_X16,
-                  Adafruit_BMP280::STANDBY_MS_500);
-  bmp.begin(0x76);
+  // BME280
+  bme.begin(0x76);
   // PMS7003
   serialPms7003.begin(9600);
-  // DHT11
-  Wire.begin();
-  pinMode(2, INPUT);
-  dht.begin();
+  // OLED
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); 
+  display.clearDisplay();
+  display.setTextSize(1); 
+  display.setTextColor(SSD1306_WHITE); 
+  display.setCursor(30, 10);
+  display.println("Loading...");
+  display.display();
+  delay(5000);
+  display.clearDisplay();
   // Wi-Fi
   WiFi.begin(ssid, password);
   while(WiFi.status() != WL_CONNECTED) {
@@ -64,15 +75,41 @@ void setup() {
 }
 
 void loop() {
-  if ((sendDataMillis == 0) || ((millis() - sendDataMillis) > sendDataInterval)) {
-    // BMP280
-    temperature = bmp.readTemperature();
-    pressure = bmp.readPressure() * 0.0075;
+  if ((showDataMillis == 0) || ((millis() - showDataMillis) > showDataInterval)) {    
+    // BME280
+    temperature = bme.readTemperature();
+    humidity = bme.readHumidity();
+    pressure = bme.readPressure() * 0.0075;
     // PMS7003
     readPms7003();
-    // DHT11
-    humidity = dht.readHumidity();
+    // MQ-9
+    co = analogRead(A0) / 2;
+    // OLED
+    display.setCursor(0, 0);
+    display.print("T:");
+    display.print(temperature);
+    display.println("C");
+    display.print("H:");
+    display.print(humidity);
+    display.println("%");
+    display.print("P:");
+    display.print(pressure);
+    display.println("mmHg");
+    display.print("PM2.5:");
+    display.print(pm25);
+    display.println("ppm");
+    display.print("CO:");
+    display.print(co);
+    display.println("ppm");
+    display.println("");
+    display.println("v 1.0.0");
+    display.display();
+    display.clearDisplay();
 
+    showDataMillis = millis();
+  }
+
+  if ((sendDataMillis == 0) || ((millis() - sendDataMillis) > sendDataInterval)) {
     // Wi-Fi
     if(WiFi.status()== WL_CONNECTED){
       WiFiClient client;
@@ -96,12 +133,12 @@ void loop() {
         + altitude 
         + ",\"sensors\":[{\"id\":\"PM1\",\"name\":\"PM1_1\",\"value\":")
         + pm1
-        + String(".00,\"unit\":\"u00B5g\/m3\"},{\"id\":\"PM2_5\",\"name\":\"PM25_1\",\"value\":")
+        + String(".00,\"unit\":\"ug\/m3\"},{\"id\":\"PM2_5\",\"name\":\"PM25_1\",\"value\":")
         + pm25
-        + String(".00,\"unit\":\"u00B5g\/m3\"},{\"id\":\"PM10\",\"name\":\"PM10_1\",\"value\":")
+        + String(".00,\"unit\":\"ug\/m3\"},{\"id\":\"PM10\",\"name\":\"PM10_1\",\"value\":")
         + pm10
-        + String(".00,\"unit\":\"u00B5g\/m3\"},{\"id\":\"CO1\",\"name\":\"CO_1\",\"value\":")
-        + analogRead(A0)
+        + String(".00,\"unit\":\"ug\/m3\"},{\"id\":\"CO1\",\"name\":\"CO_1\",\"value\":")
+        + co
         + String(".00,\"unit\":\"ppm\"},{\"id\":\"TEMP1\",\"name\":\"TEMP_1\",\"value\":")
         + String(temperature)
         + String(",\"unit\":\"C\"},{\"id\":\"HUM1\",\"name\":\"HUM_1\",\"value\":")
